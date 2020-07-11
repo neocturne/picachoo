@@ -28,7 +28,7 @@ export function ImageView({ path: filePath }: ImageViewProps): JSX.Element {
 		>
 			{isImage(filePath) && <img style={ImageViewStyle} src={url} />}
 			{isVideo(filePath) && (
-				<video controls>
+				<video style={ImageViewStyle} controls>
 					<source src={url} />
 				</video>
 			)}{' '}
