@@ -13,7 +13,14 @@ async function installReactDevTools(): Promise<void> {
 }
 
 function createWindow(): void {
-	const window = new BrowserWindow();
+	const window = new BrowserWindow({
+		webPreferences: {
+			nodeIntegration: true,
+			contextIsolation: false,
+			allowRunningInsecureContent: false,
+			webSecurity: !isDevelopment,
+		},
+	});
 
 	window.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 

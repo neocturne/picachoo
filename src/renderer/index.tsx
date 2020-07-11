@@ -1,6 +1,18 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 
-ReactDOM.render(<h1>Title</h1>, document.querySelector('#app'));
+import { App, Config } from './app';
+
+import './style.css';
+
+const config: Config = {
+	path: '/home/neoraider/Images/test',
+	left: 'Left',
+	top: 'Top',
+	right: 'Right',
+	bottom: 'Bottom',
+};
+
+ReactDOM.render(<App config={config} />, document.querySelector('#app'));
 
 module.hot?.accept();

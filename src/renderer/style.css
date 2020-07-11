@@ -1,0 +1,18 @@
+html, body, #app {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	overflow: hidden;
+	color: #eee;
+	background: #333;
+}
+
+.app-view {
+	grid-template-columns: 10em auto 10em;
+	grid-template-rows: 5em auto 5em;
+	height: 100%;
+}
+
+.app-view > * {
+	padding: 1em;
+}
