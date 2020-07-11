@@ -88,7 +88,7 @@ function reducer<S, A>(state: AsyncState<S, A>, action: AsyncAction<S, A>): Asyn
 export function useAsyncReducer<S, A>(
 	asyncReducer: (state: S, action: A) => Promise<S>,
 	initialState: S,
-): [S, boolean, (action: A) => void, (state: S) => void] {
+): [S, (action: A) => void, boolean, (state: S) => void] {
 	const [state, dispatch] = useReducer<(state: AsyncState<S, A>, action: AsyncAction<S, A>) => AsyncState<S, A>>(
 		reducer,
 		initialAsyncState(initialState),
@@ -113,5 +113,5 @@ export function useAsyncReducer<S, A>(
 		});
 	}, []);
 
-	return [state.asyncState, state.pending, asyncDispatch, reset];
+	return [state.asyncState, asyncDispatch, state.pending, reset];
 }

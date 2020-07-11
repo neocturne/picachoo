@@ -71,7 +71,7 @@ interface FileOrganizerProps {
 }
 
 function FileOrganizer({ config, files }: FileOrganizerProps): JSX.Element {
-	const [state, pending, dispatch] = useAsyncReducer(navigationReducer, { config, index: -1 });
+	const [state, dispatch, pending] = useAsyncReducer(navigationReducer, { config, index: -1 });
 	if (state.index === -1 && !pending) {
 		dispatch({ action: 'begin', files });
 	}
