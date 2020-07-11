@@ -1,5 +1,5 @@
 import * as React from 'react';
-const { useCallback } = React;
+const { useEffect, useCallback } = React;
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -107,10 +107,11 @@ interface FileOrganizerProps {
 }
 
 function FileOrganizer({ config, files: initialFiles }: FileOrganizerProps): JSX.Element {
-	const [state, dispatch, pending] = useAsyncReducer(reducer, { config, files: initialFiles, index: -1 });
-	if (state.index === -1 && !pending) {
+	const [state, dispatch] = useAsyncReducer(reducer, { config, files: initialFiles, index: -1 });
+
+	useEffect(() => {
 		dispatch({ action: 'navigation', nav: 'begin' });
-	}
+	}, [dispatch]);
 
 	const file: string | undefined = state.files[state.index];
 
