@@ -49,6 +49,7 @@ async function moveFile(config: Config, file: string, dest: string): Promise<voi
 	const srcpath = path.join(config.path, file);
 	const destpath = path.join(dest, file);
 	console.log(`Moving ${srcpath} -> ${destpath}`);
+	await fs.promises.rename(srcpath, destpath);
 }
 
 async function navigate(state: State, start: number, dir: -1 | 1): Promise<State | null> {
