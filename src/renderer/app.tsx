@@ -23,25 +23,68 @@ export interface Config {
 	down?: Destination;
 }
 
-type NavigationAction = {
-	action: 'begin' | 'end' | 'next' | 'prev';
-	files: string[];
+type Direction = 'left' | 'up' | 'right' | 'down';
+
+type MoveAction = {
+	action: 'move';
+	dir: Direction;
 };
 
-interface NavigationState {
+type Navigation = 'begin' | 'end' | 'next' | 'prev';
+
+type NavigationAction = {
+	action: 'navigation';
+	nav: Navigation;
+};
+
+type Action = MoveAction | NavigationAction;
+
+interface State {
 	config: Config;
+	files: string[];
 	index: number;
 }
 
-async function navigationReducer(state: NavigationState, action: NavigationAction): Promise<NavigationState> {
+async function moveFile(config: Config, file: string, dest: string): Promise<void> {
+	const srcpath = path.join(config.path, file);
+	const destpath = path.join(dest, file);
+	console.log(`Moving ${srcpath} -> ${destpath}`);
+}
+
+async function navigate(state: State, start: number, dir: -1 | 1): Promise<State | null> {
+	for (let index = start; index >= 0 && index < state.files.length; index += dir) {
+		const cur = path.join(state.config.path, state.files[index]);
+		const stats = await fs.promises.stat(cur);
+		if (stats.isFile()) {
+			return { ...state, index };
+		}
+	}
+
+	return null;
+}
+
+async function reducer(state: State, action: Action): Promise<State> {
+	if (action.action === 'move') {
+		const { files, index } = state;
+		const file: string | undefined = files[index];
+		const dest = state.config[action.dir]?.path;
+		if (!file || !dest) {
+			return state;
+		}
+
+		await moveFile(state.config, file, dest);
+		state = { ...state, files: [...files.slice(0, index), ...files.slice(index + 1)] };
+		return (await navigate(state, index, 1)) ?? (await navigate(state, index - 1, -1)) ?? state;
+	}
+
 	let start: number, dir: -1 | 1;
-	switch (action.action) {
+	switch (action.nav) {
 		case 'begin':
 			start = 0;
 			dir = 1;
 			break;
 		case 'end':
-			start = action.files.length - 1;
+			start = state.files.length - 1;
 			dir = -1;
 			break;
 		case 'next':
@@ -54,15 +97,7 @@ async function navigationReducer(state: NavigationState, action: NavigationActio
 			break;
 	}
 
-	for (let index = start; index >= 0 && index < action.files.length; index += dir) {
-		const cur = path.join(state.config.path, action.files[index]);
-		const stats = await fs.promises.stat(cur);
-		if (stats.isFile()) {
-			return { ...state, index };
-		}
-	}
-
-	return state;
+	return (await navigate(state, start, dir)) ?? state;
 }
 
 interface FileOrganizerProps {
@@ -70,66 +105,65 @@ interface FileOrganizerProps {
 	files: string[];
 }
 
-function FileOrganizer({ config, files }: FileOrganizerProps): JSX.Element {
-	const [state, dispatch, pending] = useAsyncReducer(navigationReducer, { config, index: -1 });
+function FileOrganizer({ config, files: initialFiles }: FileOrganizerProps): JSX.Element {
+	const [state, dispatch, pending] = useAsyncReducer(reducer, { config, files: initialFiles, index: -1 });
 	if (state.index === -1 && !pending) {
-		dispatch({ action: 'begin', files });
+		dispatch({ action: 'navigation', nav: 'begin' });
 	}
 
-	const file: string | undefined = files[state.index];
+	const file: string | undefined = state.files[state.index];
 
 	const navigate = useCallback(
 		(ev: KeyboardEvent) => {
+			let nav: Navigation;
 			switch (ev.code) {
 				case 'Home':
-					dispatch({ action: 'begin', files });
+					nav = 'begin';
 					break;
 				case 'End':
-					dispatch({ action: 'end', files });
+					nav = 'end';
 					break;
 				case 'PageUp':
-					dispatch({ action: 'prev', files });
+					nav = 'prev';
 					break;
 				case 'PageDown':
 				case 'Space':
-					dispatch({ action: 'next', files });
+					nav = 'next';
 					break;
 				default:
 					return;
 			}
 
 			ev.preventDefault();
+			dispatch({ action: 'navigation', nav });
 		},
-		[dispatch, files],
+		[dispatch],
 	);
 
 	const move = useCallback(
 		(ev: KeyboardEvent) => {
-			if (!file) return;
-
-			let dest: 'left' | 'up' | 'right' | 'down';
+			let dir: Direction;
 			switch (ev.code) {
 				case 'ArrowLeft':
-					dest = 'left';
+					dir = 'left';
 					break;
 				case 'ArrowUp':
-					dest = 'up';
+					dir = 'up';
 					break;
 				case 'ArrowRight':
-					dest = 'right';
+					dir = 'right';
 					break;
 				case 'ArrowDown':
-					dest = 'down';
+					dir = 'down';
 					break;
 				default:
 					return;
 			}
-			const destPath = config[dest]?.path;
-			console.log(destPath);
 
 			ev.preventDefault();
+			dispatch({ action: 'move', dir });
 		},
-		[file, config],
+		[dispatch],
 	);
 
 	const keyHandler = useCallback(
