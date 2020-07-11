@@ -1,11 +1,23 @@
 import * as React from 'react';
 
+import * as fileUrl from 'file-url';
+import * as path from 'path';
+
+import { isVideo, isImage } from './util';
+
 export interface ImageViewProps {
-	url: string;
+	path: string;
 }
 
-export function ImageView({ url }: ImageViewProps): JSX.Element {
-	const basename = url.match(/[^\/]*$/)?.[0];
+const ImageViewStyle: React.CSSProperties = {
+	display: 'block',
+	overflow: 'hidden',
+	objectFit: 'contain',
+};
+
+export function ImageView({ path: filePath }: ImageViewProps): JSX.Element {
+	const url = fileUrl(filePath);
+	const basename = path.basename(filePath);
 	return (
 		<div
 			style={{
@@ -14,17 +26,14 @@ export function ImageView({ url }: ImageViewProps): JSX.Element {
 				maxHeight: '100%',
 			}}
 		>
-			<img
-				style={{
-					display: 'block',
-					overflow: 'hidden',
-					objectFit: 'contain',
-				}}
-				src={url}
-			/>
+			{isImage(filePath) && <img style={ImageViewStyle} src={url} />}
+			{isVideo(filePath) && (
+				<video controls>
+					<source src={url} />
+				</video>
+			)}{' '}
 			<div
 				style={{
-					overflow: 'hidden',
 					textAlign: 'center',
 					padding: '0.5em',
 				}}

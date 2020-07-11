@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { promises as fs } from 'fs';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export function usePromise<T>(f: () => Promise<T>): T | null {
 	const [value, setValue] = useState<T | null>(null);
@@ -26,13 +27,8 @@ export function usePromise<T>(f: () => Promise<T>): T | null {
 }
 
 export function useReaddir(path: string): string[] | null {
-	const readdir = useCallback(() => fs.readdir(path), [path]);
+	const readdir = useCallback(() => fs.promises.readdir(path), [path]);
 	return usePromise(readdir);
-}
-
-export function useReadFile(path: string): Buffer | null {
-	const readFile = useCallback(() => fs.readFile(path), [path]);
-	return usePromise(readFile);
 }
 
 export function useWindowEvent<K extends keyof WindowEventMap>(type: K, f: (ev: WindowEventMap[K]) => void): void {
@@ -43,4 +39,14 @@ export function useWindowEvent<K extends keyof WindowEventMap>(type: K, f: (ev: 
 			window.removeEventListener(type, f);
 		};
 	}, [type, f]);
+}
+
+export function isImage(file: string): boolean {
+	const acceptedExtensions = ['.apng', '.bmp', '.gif', '.ico', '.jpg', '.jpeg', '.png', '.svg', '.webp'];
+	return acceptedExtensions.includes(path.extname(file).toLowerCase());
+}
+
+export function isVideo(file: string): boolean {
+	const acceptedExtensions = ['.mp4', '.mpg', '.mpeg', '.webm'];
+	return acceptedExtensions.includes(path.extname(file).toLowerCase());
 }
