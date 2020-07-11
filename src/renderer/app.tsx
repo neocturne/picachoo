@@ -26,18 +26,58 @@ export interface AppProps {
 	config: Config;
 }
 
+enum Navigation {
+	BEGIN,
+	END,
+	NEXT,
+	PREV,
+}
+
 export function App({ config }: AppProps): JSX.Element {
 	const [index, setIndex] = useState(-1);
 	const files = useReaddir(config.path);
 	const file = files?.[index];
 
-	const [nav, setNav] = useState<[number, -1 | 1]>([0, 1]);
+	const [nav, setNav] = useState<Navigation | null>(Navigation.BEGIN);
+	const [navPending, setNavPending] = useState<Navigation[]>([]);
+
+	if (nav == null && navPending.length > 0) {
+		setNav(navPending[0]);
+		setNavPending(navPending.slice(1));
+	}
+
+	const pushNav = useCallback(
+		(push: Navigation) => {
+			setNavPending([...navPending, push]);
+		},
+		[navPending],
+	);
 
 	const getNewIndex = useCallback(async () => {
 		if (!files) return null;
 
-		const [start, dir] = nav;
-		if (start === index) return null;
+		let start: number, dir: -1 | 1;
+		switch (nav) {
+			case Navigation.BEGIN:
+				start = 0;
+				dir = 1;
+				break;
+			case Navigation.END:
+				start = files.length - 1;
+				dir = -1;
+				break;
+			case Navigation.NEXT:
+				start = index + 1;
+				dir = 1;
+				break;
+			case Navigation.PREV:
+				start = index - 1;
+				dir = -1;
+				break;
+
+			default:
+				return;
+		}
 
 		for (let newIndex = start; newIndex >= 0 && newIndex < files.length; newIndex += dir) {
 			const cur = path.join(config.path, files[newIndex]);
@@ -48,25 +88,26 @@ export function App({ config }: AppProps): JSX.Element {
 		return null;
 	}, [files, index, nav, config.path]);
 	const newIndex = usePromise(getNewIndex);
-	if (newIndex != null && newIndex !== index) setIndex(newIndex);
+	if (newIndex != null && newIndex !== index) {
+		setIndex(newIndex);
+		setNav(null);
+	}
 
 	const navigate = useCallback(
 		(ev: KeyboardEvent) => {
-			if (!files) return;
-
 			switch (ev.code) {
 				case 'Home':
-					setNav([0, 1]);
+					pushNav(Navigation.BEGIN);
 					break;
 				case 'End':
-					setNav([files.length - 1, -1]);
+					pushNav(Navigation.END);
 					break;
 				case 'PageUp':
-					setNav([index - 1, -1]);
+					pushNav(Navigation.PREV);
 					break;
 				case 'PageDown':
 				case 'Space':
-					setNav([index + 1, 1]);
+					pushNav(Navigation.NEXT);
 					break;
 				default:
 					return;
@@ -74,7 +115,7 @@ export function App({ config }: AppProps): JSX.Element {
 
 			ev.preventDefault();
 		},
-		[files, index],
+		[pushNav],
 	);
 
 	const move = useCallback(
