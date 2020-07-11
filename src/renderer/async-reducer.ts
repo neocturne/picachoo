@@ -4,6 +4,7 @@ const { useReducer, useCallback } = React;
 interface AsyncState<S, A> {
 	asyncState: S;
 	pending: boolean;
+	epoch: symbol;
 	actionQueue: AsyncActionDispatch<S, A>[];
 }
 
@@ -14,19 +15,39 @@ interface AsyncActionDispatch<S, A> {
 	dispatch: (action: AsyncAction<S, A>) => void;
 }
 
-interface AsyncActionCancel {
-	action: 'cancel';
-}
-
 interface AsyncActionUpdate<S> {
 	action: 'update';
+	epoch: symbol;
 	newState: S;
 }
 
-type AsyncAction<S, A> = AsyncActionDispatch<S, A> | AsyncActionUpdate<S> | AsyncActionCancel;
+interface AsyncActionCancel {
+	action: 'cancel';
+	epoch: symbol;
+}
+
+interface AsyncActionReset<S> {
+	action: 'reset';
+	newState: S;
+}
+
+type AsyncAction<S, A> = AsyncActionDispatch<S, A> | AsyncActionUpdate<S> | AsyncActionCancel | AsyncActionReset<S>;
+
+function initialAsyncState<S, A>(state: S): AsyncState<S, A> {
+	return { asyncState: state, pending: false, epoch: Symbol(), actionQueue: [] };
+}
 
 function reducer<S, A>(state: AsyncState<S, A>, action: AsyncAction<S, A>): AsyncState<S, A> {
+	if (action.action === 'update' || action.action === 'cancel') {
+		if (action.epoch !== state.epoch) {
+			return state;
+		}
+	}
+
 	switch (action.action) {
+		case 'reset':
+			return initialAsyncState(action.newState);
+
 		case 'update':
 			state = { ...state, asyncState: action.newState };
 
@@ -54,9 +75,9 @@ function reducer<S, A>(state: AsyncState<S, A>, action: AsyncAction<S, A>): Asyn
 						state.asyncState,
 						action.asyncAction,
 					);
-					action.dispatch({ action: 'update', newState });
+					action.dispatch({ action: 'update', epoch: state.epoch, newState });
 				} catch (e) {
-					action.dispatch({ action: 'cancel' });
+					action.dispatch({ action: 'cancel', epoch: state.epoch });
 					throw e;
 				}
 			})();
@@ -67,11 +88,10 @@ function reducer<S, A>(state: AsyncState<S, A>, action: AsyncAction<S, A>): Asyn
 export function useAsyncReducer<S, A>(
 	asyncReducer: (state: S, action: A) => Promise<S>,
 	initialState: S,
-): [S, boolean, (action: A) => void] {
-	const initialAsyncState: AsyncState<S, A> = { asyncState: initialState, pending: false, actionQueue: [] };
+): [S, boolean, (action: A) => void, (state: S) => void] {
 	const [state, dispatch] = useReducer<(state: AsyncState<S, A>, action: AsyncAction<S, A>) => AsyncState<S, A>>(
 		reducer,
-		initialAsyncState,
+		initialAsyncState(initialState),
 	);
 
 	const asyncDispatch = useCallback(
@@ -86,5 +106,12 @@ export function useAsyncReducer<S, A>(
 		[asyncReducer],
 	);
 
-	return [state.asyncState, state.pending, asyncDispatch];
+	const reset = useCallback((state: S) => {
+		dispatch({
+			action: 'reset',
+			newState: state,
+		});
+	}, []);
+
+	return [state.asyncState, state.pending, asyncDispatch, reset];
 }
