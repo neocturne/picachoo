@@ -1,5 +1,5 @@
 import * as React from 'react';
-const { useState, useCallback } = React;
+const { useCallback } = React;
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -7,7 +7,8 @@ import * as path from 'path';
 import { DirGrid } from './dir-grid';
 import { ImageView } from './image-view';
 
-import { usePromise, useReaddir, useWindowEvent } from './util';
+import { useReaddir, useWindowEvent } from './util';
+import { useAsyncReducer } from './async-reducer';
 
 export interface Destination {
 	path: string;
@@ -22,92 +23,76 @@ export interface Config {
 	down?: Destination;
 }
 
-export interface AppProps {
+type NavigationAction = {
+	action: 'begin' | 'end' | 'next' | 'prev';
+	files: string[];
+};
+
+interface NavigationState {
 	config: Config;
+	index: number;
 }
 
-enum Navigation {
-	BEGIN,
-	END,
-	NEXT,
-	PREV,
+async function navigationReducer(state: NavigationState, action: NavigationAction): Promise<NavigationState> {
+	let start: number, dir: -1 | 1;
+	switch (action.action) {
+		case 'begin':
+			start = 0;
+			dir = 1;
+			break;
+		case 'end':
+			start = action.files.length - 1;
+			dir = -1;
+			break;
+		case 'next':
+			start = state.index + 1;
+			dir = 1;
+			break;
+		case 'prev':
+			start = state.index - 1;
+			dir = -1;
+			break;
+	}
+
+	for (let index = start; index >= 0 && index < action.files.length; index += dir) {
+		const cur = path.join(state.config.path, action.files[index]);
+		const stats = await fs.promises.stat(cur);
+		if (stats.isFile()) {
+			return { ...state, index };
+		}
+	}
+
+	return state;
 }
 
-export function App({ config }: AppProps): JSX.Element {
-	const [index, setIndex] = useState(-1);
-	const files = useReaddir(config.path);
-	const file = files?.[index];
+interface FileOrganizerProps {
+	config: Config;
+	files: string[];
+}
 
-	const [nav, setNav] = useState<Navigation | null>(Navigation.BEGIN);
-	const [navPending, setNavPending] = useState<Navigation[]>([]);
-
-	if (nav == null && navPending.length > 0) {
-		setNav(navPending[0]);
-		setNavPending(navPending.slice(1));
+function FileOrganizer({ config, files }: FileOrganizerProps): JSX.Element {
+	const [state, pending, dispatch] = useAsyncReducer(navigationReducer, { config, index: -1 });
+	if (state.index === -1 && !pending) {
+		dispatch({ action: 'begin', files });
 	}
 
-	const pushNav = useCallback(
-		(push: Navigation) => {
-			setNavPending([...navPending, push]);
-		},
-		[navPending],
-	);
-
-	const getNewIndex = useCallback(async () => {
-		if (!files) return null;
-
-		let start: number, dir: -1 | 1;
-		switch (nav) {
-			case Navigation.BEGIN:
-				start = 0;
-				dir = 1;
-				break;
-			case Navigation.END:
-				start = files.length - 1;
-				dir = -1;
-				break;
-			case Navigation.NEXT:
-				start = index + 1;
-				dir = 1;
-				break;
-			case Navigation.PREV:
-				start = index - 1;
-				dir = -1;
-				break;
-
-			default:
-				return;
-		}
-
-		for (let newIndex = start; newIndex >= 0 && newIndex < files.length; newIndex += dir) {
-			const cur = path.join(config.path, files[newIndex]);
-			const stats = await fs.promises.stat(cur);
-			if (stats.isFile()) return newIndex;
-		}
-
-		return null;
-	}, [files, index, nav, config.path]);
-	const newIndex = usePromise(getNewIndex);
-	if (newIndex != null && newIndex !== index) {
-		setIndex(newIndex);
-		setNav(null);
-	}
+	const file: string | undefined = files[state.index];
 
 	const navigate = useCallback(
 		(ev: KeyboardEvent) => {
 			switch (ev.code) {
 				case 'Home':
-					pushNav(Navigation.BEGIN);
+					dispatch({ action: 'begin', files });
 					break;
 				case 'End':
-					pushNav(Navigation.END);
+					dispatch({ action: 'end', files });
 					break;
 				case 'PageUp':
-					pushNav(Navigation.PREV);
+					dispatch({ action: 'prev', files });
 					break;
 				case 'PageDown':
 				case 'Space':
-					pushNav(Navigation.NEXT);
+					dispatch({ action: 'next', files });
 					break;
 				default:
 					return;
@@ -115,7 +100,7 @@ export function App({ config }: AppProps): JSX.Element {
 
 			ev.preventDefault();
 		},
-		[pushNav],
+		[dispatch, files],
 	);
 
 	const move = useCallback(
@@ -167,7 +152,17 @@ export function App({ config }: AppProps): JSX.Element {
 			right={config.right?.label}
 			bottom={config.down?.label}
 		>
-			{files ? currentImage && <ImageView key={currentImage} path={currentImage} /> : 'Loading...'}
+			{currentImage && <ImageView key={currentImage} path={currentImage} />}
 		</DirGrid>
 	);
+}
+
+export interface AppProps {
+	config: Config;
+}
+
+export function App({ config }: AppProps): JSX.Element | null {
+	const files = useReaddir(config.path);
+
+	return files ? <FileOrganizer config={config} files={files} /> : null;
 }
