@@ -2,14 +2,14 @@ import * as React from 'react';
 
 import { Center } from './center';
 
-export interface DirGridProps {
+export type Direction = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se';
+
+export type DirGridProps = {
+	[key in Direction]?: React.ReactNode;
+} & {
 	className?: string;
-	left?: React.ReactNode;
-	top?: React.ReactNode;
-	right?: React.ReactNode;
-	bottom?: React.ReactNode;
 	children?: React.ReactNode;
-}
+};
 
 const DirGridStyle: React.CSSProperties = {
 	display: 'grid',
@@ -29,21 +29,26 @@ function GridCell({ name, pos: [row, column], children }: GridCellProps): JSX.El
 	);
 }
 
-export function DirGrid({ className, left, top, right, bottom, children }: DirGridProps): JSX.Element {
+const positions: (Direction | undefined)[][] = [
+	['nw', 'n', 'ne'],
+	['w', , 'e'],
+	['sw', 's', 'se'],
+];
+
+export function DirGrid(props: DirGridProps): JSX.Element {
+	const { className, children } = props;
 	return (
 		<div style={DirGridStyle} className={className}>
-			<GridCell pos={[2, 1]} name='left'>
-				{left}
-			</GridCell>
-			<GridCell pos={[1, 2]} name='top'>
-				{top}
-			</GridCell>
-			<GridCell pos={[2, 3]} name='right'>
-				{right}
-			</GridCell>
-			<GridCell pos={[3, 2]} name='bottom'>
-				{bottom}
-			</GridCell>
+			{positions.map((row, i) =>
+				row.map(
+					(cell, j) =>
+						cell && (
+							<GridCell pos={[i + 1, j + 1]} name={cell}>
+								{props[cell]}
+							</GridCell>
+						),
+				),
+			)}
 			<GridCell pos={[2, 2]} name='center'>
 				{children}
 			</GridCell>

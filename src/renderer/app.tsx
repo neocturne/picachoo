@@ -7,7 +7,7 @@ import * as path from 'path';
 import { remote } from 'electron';
 const { dialog } = remote;
 
-import { DirGrid } from './dir-grid';
+import { DirGrid, Direction } from './dir-grid';
 import { ImageView } from './image-view';
 
 import { useReaddir, useWindowEvent } from './util';
@@ -19,13 +19,10 @@ interface Destination {
 
 interface Config {
 	path: string;
-	left?: Destination;
-	up?: Destination;
-	right?: Destination;
-	down?: Destination;
+	dests: {
+		[key in Direction]?: Destination;
+	};
 }
-
-type Direction = 'left' | 'up' | 'right' | 'down';
 
 type MoveAction = {
 	type: 'move';
@@ -108,7 +105,8 @@ async function navigate(state: State, start: number, dir: -1 | 1): Promise<State
 async function reducer(state: State, action: Action): Promise<State> {
 	switch (action.type) {
 		case 'config-dest':
-			const config = { ...state.config, [action.dir]: action.dest };
+			const dests = { ...state.config.dests, [action.dir]: action.dest };
+			const config = { ...state.config, dests };
 			return { ...state, config };
 
 		case 'undo':
@@ -117,7 +115,7 @@ async function reducer(state: State, action: Action): Promise<State> {
 		case 'move':
 			const { files, index } = state;
 			const file = files[index];
-			const dest = state.config[action.dir]?.path;
+			const dest = state.config.dests[action.dir]?.path;
 			if (!file || !dest) {
 				return state;
 			}
@@ -177,7 +175,7 @@ interface DestinationChooserProps {
 }
 
 function DestinationChooser({ dir, config, dispatch }: DestinationChooserProps): JSX.Element {
-	const destination = config[dir];
+	const destination = config.dests[dir];
 
 	const onClick = useCallback(() => {
 		(async () => {
@@ -206,6 +204,7 @@ function DestinationChooser({ dir, config, dispatch }: DestinationChooserProps):
 
 const initialConfig: Config = {
 	path: remote.getGlobal('sourcePath'),
+	dests: {},
 };
 
 export function App(): JSX.Element | null {
@@ -264,16 +263,16 @@ export function App(): JSX.Element | null {
 			let dir: Direction;
 			switch (ev.code) {
 				case 'ArrowLeft':
-					dir = 'left';
+					dir = 'w';
 					break;
 				case 'ArrowUp':
-					dir = 'up';
+					dir = 'n';
 					break;
 				case 'ArrowRight':
-					dir = 'right';
+					dir = 'e';
 					break;
 				case 'ArrowDown':
-					dir = 'down';
+					dir = 's';
 					break;
 				default:
 					return;
@@ -323,15 +322,18 @@ export function App(): JSX.Element | null {
 	let currentImage = null;
 	if (file != null) currentImage = path.join(state.config.path, file);
 
+	const dirChoosers: {
+		[key in Direction]?: JSX.Element;
+	} = {};
+
+	const directions: Direction[] = ['n', 'w', 'e', 's'];
+	for (const dir of directions) {
+		dirChoosers[dir] = <DestinationChooser dir={dir} config={state.config} dispatch={dispatch} />;
+	}
+
 	return (
 		<>
-			<DirGrid
-				className='app-view'
-				left={<DestinationChooser dir='left' config={state.config} dispatch={dispatch} />}
-				top={<DestinationChooser dir='up' config={state.config} dispatch={dispatch} />}
-				right={<DestinationChooser dir='right' config={state.config} dispatch={dispatch} />}
-				bottom={<DestinationChooser dir='down' config={state.config} dispatch={dispatch} />}
-			>
+			<DirGrid className='app-view' {...dirChoosers}>
 				{currentImage && <ImageView key={currentImage} path={currentImage} />}
 			</DirGrid>
 			<div className='status-bar'>{state.status}</div>
