@@ -311,6 +311,10 @@ export function App(): JSX.Element | null {
 
 	const keyHandler = useCallback(
 		(ev: KeyboardEvent) => {
+			if (ev.altKey || ev.shiftKey || ev.metaKey || ev.ctrlKey || ev.isComposing) {
+				return;
+			}
+
 			handleNavigate(ev);
 			handleMove(ev);
 			handleControl(ev);
