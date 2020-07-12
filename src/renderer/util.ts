@@ -28,8 +28,10 @@ export function usePromise<T>(f: () => Promise<T>): T | null {
 	return value[0];
 }
 
-export function useReaddir(path: string): string[] | null {
-	const readdir = useCallback(() => fs.promises.readdir(path), [path]);
+export function useReaddir(path: string, deps?: React.DependencyList): string[] | null {
+	deps = deps ?? [];
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	const readdir = useCallback(() => fs.promises.readdir(path), [path, ...deps]);
 	return usePromise(readdir);
 }
 
