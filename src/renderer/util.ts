@@ -4,17 +4,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export function usePromise<T>(f: () => Promise<T>): T | null {
-	const [value, setValue] = useState<T | null>(null);
+	const [value, setValue] = useState<[T, () => Promise<T>] | null>(null);
 
 	useEffect(() => {
-		setValue(null);
-
 		let cancelled = false;
 
 		(async (): Promise<void> => {
 			const v = await f();
 			if (!cancelled) {
-				setValue(v);
+				setValue([v, f]);
 			}
 		})();
 
@@ -23,7 +21,11 @@ export function usePromise<T>(f: () => Promise<T>): T | null {
 		};
 	}, [f]);
 
-	return value;
+	if (!value || value[1] !== f) {
+		return null;
+	}
+
+	return value[0];
 }
 
 export function useReaddir(path: string): string[] | null {
