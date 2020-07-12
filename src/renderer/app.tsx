@@ -32,6 +32,10 @@ type MoveAction = {
 	dir: Direction;
 };
 
+type UndoAction = {
+	type: 'undo';
+};
+
 type Navigation = 'begin' | 'end' | 'next' | 'prev';
 
 type NavigationAction = {
@@ -45,20 +49,43 @@ type ConfigDestAction = {
 	dest: Destination;
 };
 
-type Action = MoveAction | NavigationAction | ConfigDestAction;
+type Action = MoveAction | UndoAction | NavigationAction | ConfigDestAction;
+
+interface Undo {
+	file: string;
+	src: string;
+	dest: string;
+	index: number;
+	prev?: Undo;
+}
 
 interface State {
 	initialized: boolean;
 	config: Config;
 	files: (string | undefined)[];
 	index: number;
+	undo?: Undo;
 	status: string;
 }
 
-async function moveFile(config: Config, file: string, dest: string): Promise<void> {
-	const srcpath = path.join(config.path, file);
+async function moveFile(file: string, src: string, dest: string): Promise<void> {
+	const srcpath = path.join(src, file);
 	const destpath = path.join(dest, file);
 	await fs.promises.rename(srcpath, destpath);
+}
+
+async function undo(state: State): Promise<State> {
+	const { undo } = state;
+	if (!undo) return state;
+
+	const { file, src, dest, index, prev } = undo;
+
+	const prevFiles = state.files.slice(0);
+	prevFiles[index] = file;
+
+	await moveFile(file, dest, src);
+
+	return { ...state, files: prevFiles, undo: prev, index: index, status: `Undid move of ${file} to ${dest}` };
 }
 
 async function navigate(state: State, start: number, dir: -1 | 1): Promise<State | null> {
@@ -82,6 +109,9 @@ async function reducer(state: State, action: Action): Promise<State> {
 			const config = { ...state.config, [action.dir]: action.dest };
 			return { ...state, config };
 
+		case 'undo':
+			return undo(state);
+
 		case 'move':
 			const { files, index } = state;
 			const file = files[index];
@@ -90,11 +120,26 @@ async function reducer(state: State, action: Action): Promise<State> {
 				return state;
 			}
 
-			await moveFile(state.config, file, dest);
+			const src = state.config.path;
+			await moveFile(file, src, dest);
 
 			const newFiles = files.slice(0);
 			delete newFiles[index];
-			state = { ...state, files: newFiles, status: `Moved ${file} to directory ${dest}` };
+
+			const newUndo: Undo = {
+				file,
+				src,
+				dest,
+				index,
+				prev: state.undo,
+			};
+
+			state = {
+				...state,
+				files: newFiles,
+				undo: newUndo,
+				status: `Moved ${file} to directory ${dest}`,
+			};
 
 			return (await navigate(state, index, 1)) ?? (await navigate(state, index - 1, -1)) ?? state;
 
@@ -185,7 +230,7 @@ export function App(): JSX.Element | null {
 
 	const file = state.files[state.index];
 
-	const navigate = useCallback(
+	const handleNavigate = useCallback(
 		(ev: KeyboardEvent) => {
 			let nav: Navigation;
 			switch (ev.code) {
@@ -212,7 +257,7 @@ export function App(): JSX.Element | null {
 		[dispatch],
 	);
 
-	const move = useCallback(
+	const handleMove = useCallback(
 		(ev: KeyboardEvent) => {
 			let dir: Direction;
 			switch (ev.code) {
@@ -238,12 +283,28 @@ export function App(): JSX.Element | null {
 		[dispatch],
 	);
 
+	const handleControl = useCallback(
+		(ev: KeyboardEvent) => {
+			switch (ev.code) {
+				case 'Backspace':
+					dispatch({ type: 'undo' });
+					break;
+				default:
+					return;
+			}
+
+			ev.preventDefault();
+		},
+		[dispatch],
+	);
+
 	const keyHandler = useCallback(
 		(ev: KeyboardEvent) => {
-			navigate(ev);
-			move(ev);
+			handleNavigate(ev);
+			handleMove(ev);
+			handleControl(ev);
 		},
-		[navigate, move],
+		[handleNavigate, handleMove, handleControl],
 	);
 	useWindowEvent('keydown', keyHandler);
 
