@@ -48,12 +48,6 @@ global.sourcePath = argPath ?? path.resolve();
 
 app.allowRendererProcessReuse = true;
 
-async function installReactDevTools(): Promise<void> {
-	const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import('electron-devtools-installer');
-	const name = await installExtension(REACT_DEVELOPER_TOOLS);
-	console.log(`Added Extension: ${name}`);
-}
-
 function createWindow(): void {
 	const window = new BrowserWindow({
 		title: 'PiCaChoo',
@@ -94,10 +88,6 @@ app.on('activate', () => {
 });
 
 async function initialize(): Promise<void> {
-	if (isDevelopment) {
-		await installReactDevTools();
-	}
-
 	createWindow();
 }
 
