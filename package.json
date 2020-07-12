@@ -6,7 +6,9 @@
 	"private": true,
 	"main": ".webpack/main",
 	"scripts": {
-		"start": "electron-forge start",
+		"start": "electron-forge start --",
+		"package": "electron-forge package",
+		"build": "electron-forge build",
 		"lint": "eslint 'src/**/*.ts' 'src/**/*.tsx'"
 	},
 	"config": {
@@ -45,6 +47,7 @@
 		"@electron-forge/maker-zip": "^6.0.0-beta.52",
 		"@electron-forge/plugin-webpack": "^6.0.0-beta.52",
 		"@types/electron-devtools-installer": "^2.2.0",
+		"@types/minimist": "^1.2.0",
 		"@types/react": "^16.9.42",
 		"@types/react-dom": "^16.9.8",
 		"@typescript-eslint/eslint-plugin": "^3.6.0",
@@ -65,6 +68,7 @@
 	},
 	"dependencies": {
 		"file-url": "^3.0.0",
+		"minimist": "^1.2.5",
 		"react": "^16.13.1",
 		"react-dom": "^16.13.1"
 	}

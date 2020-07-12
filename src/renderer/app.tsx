@@ -4,18 +4,20 @@ const { useEffect, useCallback } = React;
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { remote } from 'electron';
+const { dialog } = remote;
+
 import { DirGrid } from './dir-grid';
 import { ImageView } from './image-view';
 
 import { useReaddir, useWindowEvent } from './util';
 import { useAsyncReducer } from './async-reducer';
 
-export interface Destination {
+interface Destination {
 	path: string;
-	label: string;
 }
 
-export interface Config {
+interface Config {
 	path: string;
 	left?: Destination;
 	up?: Destination;
@@ -26,18 +28,24 @@ export interface Config {
 type Direction = 'left' | 'up' | 'right' | 'down';
 
 type MoveAction = {
-	action: 'move';
+	type: 'move';
 	dir: Direction;
 };
 
 type Navigation = 'begin' | 'end' | 'next' | 'prev';
 
 type NavigationAction = {
-	action: 'navigation';
+	type: 'navigation';
 	nav: Navigation;
 };
 
-type Action = MoveAction | NavigationAction;
+type ConfigDestAction = {
+	type: 'config-dest';
+	dir: Direction;
+	dest: Destination;
+};
+
+type Action = MoveAction | NavigationAction | ConfigDestAction;
 
 interface State {
 	config: Config;
@@ -68,57 +76,104 @@ async function navigate(state: State, start: number, dir: -1 | 1): Promise<State
 }
 
 async function reducer(state: State, action: Action): Promise<State> {
-	if (action.action === 'move') {
-		const { files, index } = state;
-		const file = files[index];
-		const dest = state.config[action.dir]?.path;
-		if (!file || !dest) {
-			return state;
-		}
+	switch (action.type) {
+		case 'config-dest':
+			const config = { ...state.config, [action.dir]: action.dest };
+			return { ...state, config };
 
-		await moveFile(state.config, file, dest);
+		case 'move':
+			const { files, index } = state;
+			const file = files[index];
+			const dest = state.config[action.dir]?.path;
+			if (!file || !dest) {
+				return state;
+			}
 
-		const newFiles = files.slice(0);
-		delete newFiles[index];
-		state = { ...state, files: newFiles };
+			await moveFile(state.config, file, dest);
 
-		return (await navigate(state, index, 1)) ?? (await navigate(state, index - 1, -1)) ?? state;
+			const newFiles = files.slice(0);
+			delete newFiles[index];
+			state = { ...state, files: newFiles };
+
+			return (await navigate(state, index, 1)) ?? (await navigate(state, index - 1, -1)) ?? state;
+
+		case 'navigation':
+			let start: number, dir: -1 | 1;
+			switch (action.nav) {
+				case 'begin':
+					start = 0;
+					dir = 1;
+					break;
+				case 'end':
+					start = state.files.length - 1;
+					dir = -1;
+					break;
+				case 'next':
+					start = state.index + 1;
+					dir = 1;
+					break;
+				case 'prev':
+					start = state.index - 1;
+					dir = -1;
+					break;
+			}
+
+			return (await navigate(state, start, dir)) ?? state;
 	}
-
-	let start: number, dir: -1 | 1;
-	switch (action.nav) {
-		case 'begin':
-			start = 0;
-			dir = 1;
-			break;
-		case 'end':
-			start = state.files.length - 1;
-			dir = -1;
-			break;
-		case 'next':
-			start = state.index + 1;
-			dir = 1;
-			break;
-		case 'prev':
-			start = state.index - 1;
-			dir = -1;
-			break;
-	}
-
-	return (await navigate(state, start, dir)) ?? state;
 }
 
-interface FileOrganizerProps {
+interface DestinationChooserProps {
+	dir: Direction;
 	config: Config;
-	files: string[];
+	dispatch: (action: Action) => void;
 }
 
-function FileOrganizer({ config, files: initialFiles }: FileOrganizerProps): JSX.Element {
-	const [state, dispatch] = useAsyncReducer(reducer, { config, files: initialFiles, index: -1 });
+function DestinationChooser({ dir, config, dispatch }: DestinationChooserProps): JSX.Element {
+	const destination = config[dir];
+
+	const onClick = useCallback(() => {
+		(async () => {
+			const res = await dialog.showOpenDialog(remote.getCurrentWindow(), {
+				defaultPath: destination?.path,
+				properties: ['openDirectory'],
+			});
+			if (!res.canceled && res.filePaths[0]) {
+				dispatch({ type: 'config-dest', dir, dest: { path: res.filePaths[0] } });
+			}
+		})();
+	}, [destination, dir, dispatch]);
+
+	let label;
+	if (destination) {
+		label = path.basename(destination.path);
+	}
+
+	return (
+		<div style={{ textAlign: 'center' }}>
+			<div style={{ padding: '0.5em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+			<button onClick={onClick}>Browse...</button>
+		</div>
+	);
+}
+
+const initialConfig: Config = {
+	path: remote.getGlobal('sourcePath'),
+};
+
+export function App(): JSX.Element | null {
+	const [state, dispatch, , reset] = useAsyncReducer(reducer, {
+		config: initialConfig,
+		files: [],
+		index: -1,
+	});
+	const initialFiles = useReaddir(state.config.path);
 
 	useEffect(() => {
-		dispatch({ action: 'navigation', nav: 'begin' });
-	}, [dispatch]);
+		if (initialFiles) {
+			reset({ config: initialConfig, files: initialFiles, index: -1 });
+			dispatch({ type: 'navigation', nav: 'begin' });
+		}
+	}, [dispatch, reset, initialFiles]);
 
 	const file = state.files[state.index];
 
@@ -144,7 +199,7 @@ function FileOrganizer({ config, files: initialFiles }: FileOrganizerProps): JSX
 			}
 
 			ev.preventDefault();
-			dispatch({ action: 'navigation', nav });
+			dispatch({ type: 'navigation', nav });
 		},
 		[dispatch],
 	);
@@ -170,7 +225,7 @@ function FileOrganizer({ config, files: initialFiles }: FileOrganizerProps): JSX
 			}
 
 			ev.preventDefault();
-			dispatch({ action: 'move', dir });
+			dispatch({ type: 'move', dir });
 		},
 		[dispatch],
 	);
@@ -185,27 +240,17 @@ function FileOrganizer({ config, files: initialFiles }: FileOrganizerProps): JSX
 	useWindowEvent('keydown', keyHandler);
 
 	let currentImage = null;
-	if (file != null) currentImage = path.join(config.path, file);
+	if (file != null) currentImage = path.join(state.config.path, file);
 
 	return (
 		<DirGrid
 			className='app-view'
-			left={config.left?.label}
-			top={config.up?.label}
-			right={config.right?.label}
-			bottom={config.down?.label}
+			left={<DestinationChooser dir='left' config={state.config} dispatch={dispatch} />}
+			top={<DestinationChooser dir='up' config={state.config} dispatch={dispatch} />}
+			right={<DestinationChooser dir='right' config={state.config} dispatch={dispatch} />}
+			bottom={<DestinationChooser dir='down' config={state.config} dispatch={dispatch} />}
 		>
 			{currentImage && <ImageView key={currentImage} path={currentImage} />}
 		</DirGrid>
 	);
-}
-
-export interface AppProps {
-	config: Config;
-}
-
-export function App({ config }: AppProps): JSX.Element | null {
-	const files = useReaddir(config.path);
-
-	return files ? <FileOrganizer config={config} files={files} /> : null;
 }

@@ -12,7 +12,3 @@ html, body, #app {
 	grid-template-rows: 5em auto 5em;
 	height: 100%;
 }
-
-.app-view > * {
-	padding: 1em;
-}
