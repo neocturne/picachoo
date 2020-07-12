@@ -1,5 +1,5 @@
 import * as React from 'react';
-const { useEffect, useCallback } = React;
+const { useEffect, useCallback, useState } = React;
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -60,7 +60,7 @@ interface Undo {
 }
 
 interface State {
-	initialized: boolean;
+	initialized?: symbol;
 	config: Config;
 	files: (string | undefined)[];
 	index: number;
@@ -94,10 +94,12 @@ async function navigate(state: State, start: number, dir: -1 | 1): Promise<State
 		if (!file) continue;
 
 		const cur = path.join(state.config.path, file);
-		const stats = await fs.promises.stat(cur);
-		if (stats.isFile()) {
-			return { ...state, index };
-		}
+		try {
+			const stats = await fs.promises.stat(cur);
+			if (stats.isFile()) {
+				return { ...state, index };
+			}
+		} catch (e) {}
 	}
 
 	return null;
@@ -207,26 +209,26 @@ const initialConfig: Config = {
 };
 
 export function App(): JSX.Element | null {
+	const [epoch, setEpoch] = useState(Symbol());
 	const [state, dispatch, , reset] = useAsyncReducer(reducer, {
-		initialized: false,
 		config: initialConfig,
 		files: [],
 		index: -1,
 		status: 'Loading...',
 	});
-	const initialFiles = useReaddir(state.config.path);
+	const initialFiles = useReaddir(state.config.path, [epoch]);
 
 	useEffect(() => {
-		if (initialFiles && !state.initialized) {
+		if (initialFiles && state.initialized !== epoch) {
 			reset({
 				...state,
-				initialized: true,
+				initialized: epoch,
 				files: initialFiles,
 				status: `Found ${initialFiles.length} files in directory ${state.config.path}`,
 			});
 			dispatch({ type: 'navigation', nav: 'begin' });
 		}
-	}, [dispatch, reset, state, initialFiles]);
+	}, [epoch, state, dispatch, reset, initialFiles]);
 
 	const file = state.files[state.index];
 
@@ -289,13 +291,23 @@ export function App(): JSX.Element | null {
 				case 'Backspace':
 					dispatch({ type: 'undo' });
 					break;
+				case 'F5':
+					setEpoch(Symbol());
+					reset({
+						...state,
+						files: [],
+						index: -1,
+						status: 'Loading...',
+						undo: undefined,
+					});
+					break;
 				default:
 					return;
 			}
 
 			ev.preventDefault();
 		},
-		[dispatch],
+		[state, dispatch, reset],
 	);
 
 	const keyHandler = useCallback(
