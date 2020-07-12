@@ -41,7 +41,7 @@ type Action = MoveAction | NavigationAction;
 
 interface State {
 	config: Config;
-	files: string[];
+	files: (string | undefined)[];
 	index: number;
 }
 
@@ -54,7 +54,10 @@ async function moveFile(config: Config, file: string, dest: string): Promise<voi
 
 async function navigate(state: State, start: number, dir: -1 | 1): Promise<State | null> {
 	for (let index = start; index >= 0 && index < state.files.length; index += dir) {
-		const cur = path.join(state.config.path, state.files[index]);
+		const file = state.files[index];
+		if (!file) continue;
+
+		const cur = path.join(state.config.path, file);
 		const stats = await fs.promises.stat(cur);
 		if (stats.isFile()) {
 			return { ...state, index };
@@ -67,14 +70,18 @@ async function navigate(state: State, start: number, dir: -1 | 1): Promise<State
 async function reducer(state: State, action: Action): Promise<State> {
 	if (action.action === 'move') {
 		const { files, index } = state;
-		const file: string | undefined = files[index];
+		const file = files[index];
 		const dest = state.config[action.dir]?.path;
 		if (!file || !dest) {
 			return state;
 		}
 
 		await moveFile(state.config, file, dest);
-		state = { ...state, files: [...files.slice(0, index), ...files.slice(index + 1)] };
+
+		const newFiles = files.slice(0);
+		delete newFiles[index];
+		state = { ...state, files: newFiles };
+
 		return (await navigate(state, index, 1)) ?? (await navigate(state, index - 1, -1)) ?? state;
 	}
 
@@ -113,7 +120,7 @@ function FileOrganizer({ config, files: initialFiles }: FileOrganizerProps): JSX
 		dispatch({ action: 'navigation', nav: 'begin' });
 	}, [dispatch]);
 
-	const file: string | undefined = state.files[state.index];
+	const file = state.files[state.index];
 
 	const navigate = useCallback(
 		(ev: KeyboardEvent) => {
