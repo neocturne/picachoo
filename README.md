@@ -32,10 +32,11 @@ each directional key.
   directory
 - F5: Reload contents of input directory
 - Numpad: Move current file into the directory configured for the corresponding
-  direction. The Numpad 5 is neutral and will just navigate to the  next file
-  (same as Page Down and Space)
-- Arrow keys: Move current file into the directory configured for the corresponding
-  direction. The diagonal directions can't be selected using the arrow keys.
+  direction. The Numpad 5 is neutral and will just navigate to the next file
+  (same as Page Down and Space).
+- Arrow keys: Move current file into the directory configured for the
+  corresponding direction. The diagonal directions can't be selected using the
+  arrow keys.
 - W, A, S, D: Alternative to the arrow keys
 - Backspace: Undo the last move. The number of undo operations is unlimited, but
   reloading the input directory using F5 will reset all undo information, so no
