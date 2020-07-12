@@ -1,7 +1,7 @@
 # PiCaChoo - The PictureCategoryChooser
 
-PiCaChoo is an image (and video) viewer and image organization tool. The arrow
-keys can be used to move files into four different directories.
+PiCaChoo is an image (and video) viewer and organization tool. The Numpad
+or arrow keys can be used to move files into up to 8 different directories.
 
 
 ## Build
@@ -23,17 +23,23 @@ line:
 ./picachoo ~/my-images
 ```
 
-Then use the four "Browse..." buttons to choose the destination directory for
-each arrow key.
+Then use the 8 "Browse..." buttons to choose the destination directory for
+each directional key.
 
 ### Key bindings
 
 - Home, End, Page Up, Page Down, Space: Navigate through the images of the input
   directory
 - F5: Reload contents of input directory
-- Arrow keys: Move current file to one of the configured output directories
+- Numpad: Move current file into the directory configured for the corresponding
+  direction. The Numpad 5 is neutral and will just navigate to the  next file
+  (same as Page Down and Space)
+- Arrow keys: Move current file into the directory configured for the corresponding
+  direction. The diagonal directions can't be selected using the arrow keys.
+- W, A, S, D: Alternative to the arrow keys
 - Backspace: Undo the last move. The number of undo operations is unlimited, but
-  reloading the input directory will reset all undo information.
+  reloading the input directory using F5 will reset all undo information, so no
+  moves that were done before the reload can be undone anymore.
 
 
 ## Missing features

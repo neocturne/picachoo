@@ -246,6 +246,7 @@ export function App(): JSX.Element | null {
 					break;
 				case 'PageDown':
 				case 'Space':
+				case 'Numpad5':
 					nav = 'next';
 					break;
 				default:
@@ -262,17 +263,37 @@ export function App(): JSX.Element | null {
 		(ev: KeyboardEvent) => {
 			let dir: Direction;
 			switch (ev.code) {
-				case 'ArrowLeft':
-					dir = 'w';
+				case 'Numpad7':
+					dir = 'nw';
 					break;
 				case 'ArrowUp':
+				case 'KeyW':
+				case 'Numpad8':
 					dir = 'n';
 					break;
+				case 'Numpad9':
+					dir = 'ne';
+					break;
+				case 'ArrowLeft':
+				case 'KeyA':
+				case 'Numpad4':
+					dir = 'w';
+					break;
 				case 'ArrowRight':
+				case 'KeyD':
+				case 'Numpad6':
 					dir = 'e';
 					break;
+				case 'Numpad1':
+					dir = 'sw';
+					break;
 				case 'ArrowDown':
+				case 'KeyS':
+				case 'Numpad2':
 					dir = 's';
+					break;
+				case 'Numpad3':
+					dir = 'se';
 					break;
 				default:
 					return;
@@ -330,7 +351,7 @@ export function App(): JSX.Element | null {
 		[key in Direction]?: JSX.Element;
 	} = {};
 
-	const directions: Direction[] = ['n', 'w', 'e', 's'];
+	const directions: Direction[] = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
 	for (const dir of directions) {
 		dirChoosers[dir] = <DestinationChooser dir={dir} config={state.config} dispatch={dispatch} />;
 	}
