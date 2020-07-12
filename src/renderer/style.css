@@ -7,8 +7,22 @@ html, body, #app {
 	background: #333;
 }
 
+#app {
+	display: flex;
+	flex-direction: column;
+}
+
 .app-view {
 	grid-template-columns: 10em auto 10em;
 	grid-template-rows: 5em auto 5em;
-	height: 100%;
+	height: 0;
+	flex: auto;
+}
+
+.status-bar {
+	background: #444;
+	padding: 0.5em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }

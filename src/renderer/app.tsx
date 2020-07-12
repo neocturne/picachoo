@@ -48,15 +48,16 @@ type ConfigDestAction = {
 type Action = MoveAction | NavigationAction | ConfigDestAction;
 
 interface State {
+	initialized: boolean;
 	config: Config;
 	files: (string | undefined)[];
 	index: number;
+	status: string;
 }
 
 async function moveFile(config: Config, file: string, dest: string): Promise<void> {
 	const srcpath = path.join(config.path, file);
 	const destpath = path.join(dest, file);
-	console.log(`Moving ${srcpath} -> ${destpath}`);
 	await fs.promises.rename(srcpath, destpath);
 }
 
@@ -93,7 +94,7 @@ async function reducer(state: State, action: Action): Promise<State> {
 
 			const newFiles = files.slice(0);
 			delete newFiles[index];
-			state = { ...state, files: newFiles };
+			state = { ...state, files: newFiles, status: `Moved ${file} to directory ${dest}` };
 
 			return (await navigate(state, index, 1)) ?? (await navigate(state, index - 1, -1)) ?? state;
 
@@ -162,18 +163,25 @@ const initialConfig: Config = {
 
 export function App(): JSX.Element | null {
 	const [state, dispatch, , reset] = useAsyncReducer(reducer, {
+		initialized: false,
 		config: initialConfig,
 		files: [],
 		index: -1,
+		status: 'Loading...',
 	});
 	const initialFiles = useReaddir(state.config.path);
 
 	useEffect(() => {
-		if (initialFiles) {
-			reset({ config: initialConfig, files: initialFiles, index: -1 });
+		if (initialFiles && !state.initialized) {
+			reset({
+				...state,
+				initialized: true,
+				files: initialFiles,
+				status: `Found ${initialFiles.length} files in directory ${state.config.path}`,
+			});
 			dispatch({ type: 'navigation', nav: 'begin' });
 		}
-	}, [dispatch, reset, initialFiles]);
+	}, [dispatch, reset, state, initialFiles]);
 
 	const file = state.files[state.index];
 
@@ -243,14 +251,17 @@ export function App(): JSX.Element | null {
 	if (file != null) currentImage = path.join(state.config.path, file);
 
 	return (
-		<DirGrid
-			className='app-view'
-			left={<DestinationChooser dir='left' config={state.config} dispatch={dispatch} />}
-			top={<DestinationChooser dir='up' config={state.config} dispatch={dispatch} />}
-			right={<DestinationChooser dir='right' config={state.config} dispatch={dispatch} />}
-			bottom={<DestinationChooser dir='down' config={state.config} dispatch={dispatch} />}
-		>
-			{currentImage && <ImageView key={currentImage} path={currentImage} />}
-		</DirGrid>
+		<>
+			<DirGrid
+				className='app-view'
+				left={<DestinationChooser dir='left' config={state.config} dispatch={dispatch} />}
+				top={<DestinationChooser dir='up' config={state.config} dispatch={dispatch} />}
+				right={<DestinationChooser dir='right' config={state.config} dispatch={dispatch} />}
+				bottom={<DestinationChooser dir='down' config={state.config} dispatch={dispatch} />}
+			>
+				{currentImage && <ImageView key={currentImage} path={currentImage} />}
+			</DirGrid>
+			<div className='status-bar'>{state.status}</div>
+		</>
 	);
 }
