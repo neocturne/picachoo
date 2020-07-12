@@ -9,25 +9,25 @@ interface AsyncState<S, A> {
 }
 
 interface AsyncActionDispatch<S, A> {
-	action: 'dispatch';
+	type: 'dispatch';
 	asyncReducer: (state: S, action: A) => Promise<S>;
 	asyncAction: A;
 	dispatch: (action: AsyncAction<S, A>) => void;
 }
 
 interface AsyncActionUpdate<S> {
-	action: 'update';
+	type: 'update';
 	epoch: symbol;
 	newState: S;
 }
 
 interface AsyncActionCancel {
-	action: 'cancel';
+	type: 'cancel';
 	epoch: symbol;
 }
 
 interface AsyncActionReset<S> {
-	action: 'reset';
+	type: 'reset';
 	newState: S;
 }
 
@@ -38,13 +38,13 @@ function initialAsyncState<S, A>(state: S): AsyncState<S, A> {
 }
 
 function reducer<S, A>(state: AsyncState<S, A>, action: AsyncAction<S, A>): AsyncState<S, A> {
-	if (action.action === 'update' || action.action === 'cancel') {
+	if (action.type === 'update' || action.type === 'cancel') {
 		if (action.epoch !== state.epoch) {
 			return state;
 		}
 	}
 
-	switch (action.action) {
+	switch (action.type) {
 		case 'reset':
 			return initialAsyncState(action.newState);
 
@@ -75,9 +75,9 @@ function reducer<S, A>(state: AsyncState<S, A>, action: AsyncAction<S, A>): Asyn
 						state.asyncState,
 						action.asyncAction,
 					);
-					action.dispatch({ action: 'update', epoch: state.epoch, newState });
+					action.dispatch({ type: 'update', epoch: state.epoch, newState });
 				} catch (e) {
-					action.dispatch({ action: 'cancel', epoch: state.epoch });
+					action.dispatch({ type: 'cancel', epoch: state.epoch });
 					throw e;
 				}
 			})();
@@ -97,7 +97,7 @@ export function useAsyncReducer<S, A>(
 	const asyncDispatch = useCallback(
 		(action: A) => {
 			dispatch({
-				action: 'dispatch',
+				type: 'dispatch',
 				asyncReducer,
 				asyncAction: action,
 				dispatch,
@@ -108,7 +108,7 @@ export function useAsyncReducer<S, A>(
 
 	const reset = useCallback((state: S) => {
 		dispatch({
-			action: 'reset',
+			type: 'reset',
 			newState: state,
 		});
 	}, []);
