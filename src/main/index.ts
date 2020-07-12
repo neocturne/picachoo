@@ -56,6 +56,7 @@ async function installReactDevTools(): Promise<void> {
 
 function createWindow(): void {
 	const window = new BrowserWindow({
+		title: 'PiCaChoo',
 		webPreferences: {
 			nodeIntegration: true,
 			contextIsolation: false,
