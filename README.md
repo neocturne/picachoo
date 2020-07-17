@@ -34,10 +34,13 @@ each directional key.
 - Numpad: Move current file into the directory configured for the corresponding
   direction. The Numpad 5 is neutral and will just navigate to the next file
   (same as Page Down and Space).
+- Q, W, E, A, S, D, Z, X, C: Alternative to the numpad keys. This ignores the
+  configured keyboard layout - for example, on a QWERTZ layout, the south-west
+  direction would use the Y key instead of the Z key, so the keys are always
+  arranged in a square.
 - Arrow keys: Move current file into the directory configured for the
   corresponding direction. The diagonal directions can't be selected using the
   arrow keys.
-- W, A, S, D: Alternative to the arrow keys
 - Backspace: Undo the last move. The number of undo operations is unlimited, but
   reloading the input directory using F5 will reset all undo information, so no
   moves that were done before the reload can be undone anymore.

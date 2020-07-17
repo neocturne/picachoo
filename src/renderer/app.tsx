@@ -246,6 +246,7 @@ export function App(): JSX.Element | null {
 					break;
 				case 'PageDown':
 				case 'Space':
+				case 'KeyS':
 				case 'Numpad5':
 					nav = 'next';
 					break;
@@ -263,6 +264,7 @@ export function App(): JSX.Element | null {
 		(ev: KeyboardEvent) => {
 			let dir: Direction;
 			switch (ev.code) {
+				case 'KeyQ':
 				case 'Numpad7':
 					dir = 'nw';
 					break;
@@ -271,6 +273,7 @@ export function App(): JSX.Element | null {
 				case 'Numpad8':
 					dir = 'n';
 					break;
+				case 'KeyE':
 				case 'Numpad9':
 					dir = 'ne';
 					break;
@@ -284,14 +287,16 @@ export function App(): JSX.Element | null {
 				case 'Numpad6':
 					dir = 'e';
 					break;
+				case 'KeyZ':
 				case 'Numpad1':
 					dir = 'sw';
 					break;
 				case 'ArrowDown':
-				case 'KeyS':
+				case 'KeyX':
 				case 'Numpad2':
 					dir = 's';
 					break;
+				case 'KeyC':
 				case 'Numpad3':
 					dir = 'se';
 					break;
