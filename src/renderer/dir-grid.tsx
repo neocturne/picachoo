@@ -43,7 +43,7 @@ export function DirGrid(props: DirGridProps): JSX.Element {
 				row.map(
 					(cell, j) =>
 						cell && (
-							<GridCell pos={[i + 1, j + 1]} name={cell}>
+							<GridCell key={cell} pos={[i + 1, j + 1]} name={cell}>
 								{props[cell]}
 							</GridCell>
 						),
