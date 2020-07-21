@@ -236,7 +236,7 @@ function DestinationChooser({ dir, config, dispatch }: DestinationChooserProps):
 	return (
 		<div className={styles.destinationWrapper}>
 			<Typography className={styles.destinationLabel}>{label}</Typography>
-			<Button variant='outlined' onClick={onClick}>
+			<Button variant='outlined' color='inherit' onClick={onClick}>
 				Browse...
 			</Button>
 		</div>

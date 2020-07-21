@@ -1,7 +1,10 @@
 import * as React from 'react';
 
+import { clipboard } from 'electron';
+
 import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
+import ContentCopy from '@material-ui/icons/ContentCopy';
 import { Theme, makeStyles } from '@material-ui/core/styles';
 
 import * as fileUrl from 'file-url';
@@ -43,7 +46,19 @@ export function ImageView({ path: filePath }: ImageViewProps): JSX.Element {
 					<source src={url} />
 				</video>
 			)}{' '}
-			<Typography className={styles.imageCaption}>{basename}</Typography>
+			<Typography className={styles.imageCaption}>
+				{basename}{' '}
+				<Button
+					variant='text'
+					color='inherit'
+					title='Copy path'
+					onClick={() => {
+						clipboard.writeText(filePath);
+					}}
+				>
+					<ContentCopy />
+				</Button>
+			</Typography>
 		</div>
 	);
 }
