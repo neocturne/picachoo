@@ -1,6 +1,14 @@
 import * as React from 'react';
 
+import { makeStyles } from '@material-ui/core/styles';
+
 import { Center } from './center';
+
+const useStyles = makeStyles({
+	dirGrid: {
+		display: 'grid',
+	},
+});
 
 export type Direction = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se';
 
@@ -9,10 +17,6 @@ export type DirGridProps = {
 } & {
 	className?: string;
 	children?: React.ReactNode;
-};
-
-const DirGridStyle: React.CSSProperties = {
-	display: 'grid',
 };
 
 interface GridCellProps {
@@ -36,9 +40,12 @@ const positions: (Direction | undefined)[][] = [
 ];
 
 export function DirGrid(props: DirGridProps): JSX.Element {
+	const styles = useStyles();
+
 	const { className, children } = props;
+
 	return (
-		<div style={DirGridStyle} className={className}>
+		<div className={`${styles.dirGrid} ${className}`}>
 			{positions.map((row, i) =>
 				row.map(
 					(cell, j) =>

@@ -1,6 +1,10 @@
 import * as React from 'react';
 const { useEffect, useCallback, useState } = React;
 
+import Button from '@material-ui/core/Button';
+import Typography from '@material-ui/core/Typography';
+import { Theme, makeStyles } from '@material-ui/core/styles';
+
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -12,6 +16,39 @@ import { ImageView } from './image-view';
 
 import { useReaddir, useWindowEvent } from './util';
 import { useAsyncReducer } from './async-reducer';
+
+const useStyles = makeStyles((theme: Theme) => ({
+	root: {
+		color: theme.palette.text.primary,
+		background: theme.palette.background.default,
+		display: 'flex',
+		flexDirection: 'column',
+		height: '100%',
+	},
+	appView: {
+		gridTemplateColumns: '10em auto 10em',
+		gridTemplateRows: '8em auto 8em',
+		height: 0,
+		flex: 'auto',
+	},
+	destinationWrapper: {
+		textAlign: 'center',
+	},
+	destinationLabel: {
+		padding: theme.spacing(1),
+		overflow: 'hidden',
+		whiteSpace: 'nowrap',
+		textOverflow: 'ellipsis',
+		height: '1.5em',
+	},
+	statusBar: {
+		background: theme.palette.background.paper,
+		padding: theme.spacing(1),
+		whiteSpace: 'nowrap',
+		overflow: 'hidden',
+		textOverflow: 'ellipsis',
+	},
+}));
 
 interface Destination {
 	path: string;
@@ -175,6 +212,8 @@ interface DestinationChooserProps {
 }
 
 function DestinationChooser({ dir, config, dispatch }: DestinationChooserProps): JSX.Element {
+	const styles = useStyles();
+
 	const destination = config.dests[dir];
 
 	const onClick = useCallback(() => {
@@ -195,9 +234,11 @@ function DestinationChooser({ dir, config, dispatch }: DestinationChooserProps):
 	}
 
 	return (
-		<div style={{ textAlign: 'center' }}>
-			<div style={{ padding: '0.5em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
-			<button onClick={onClick}>Browse...</button>
+		<div className={styles.destinationWrapper}>
+			<Typography className={styles.destinationLabel}>{label}</Typography>
+			<Button variant='outlined' onClick={onClick}>
+				Browse...
+			</Button>
 		</div>
 	);
 }
@@ -208,6 +249,8 @@ const initialConfig: Config = {
 };
 
 export function App(): JSX.Element | null {
+	const styles = useStyles();
+
 	const [epoch, setEpoch] = useState(Symbol());
 	const [state, dispatch, , reset] = useAsyncReducer(reducer, {
 		config: initialConfig,
@@ -362,11 +405,11 @@ export function App(): JSX.Element | null {
 	}
 
 	return (
-		<>
-			<DirGrid className='app-view' {...dirChoosers}>
+		<div className={styles.root}>
+			<DirGrid className={styles.appView} {...dirChoosers}>
 				{currentImage && <ImageView key={currentImage} path={currentImage} />}
 			</DirGrid>
-			<div className='status-bar'>{state.status}</div>
-		</>
+			<Typography className={styles.statusBar}>{state.status}</Typography>
+		</div>
 	);
 }

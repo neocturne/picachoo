@@ -1,45 +1,49 @@
 import * as React from 'react';
 
+import Button from '@material-ui/core/Button';
+import Typography from '@material-ui/core/Typography';
+import { Theme, makeStyles } from '@material-ui/core/styles';
+
 import * as fileUrl from 'file-url';
 import * as path from 'path';
 
 import { isVideo, isImage } from './util';
 
+const useStyles = makeStyles((theme: Theme) => ({
+	imageView: {
+		display: 'flex',
+		flexDirection: 'column',
+		maxHeight: '100%',
+	},
+	image: {
+		display: 'block',
+		overflow: 'hidden',
+		objectFit: 'contain',
+	},
+	imageCaption: {
+		textAlign: 'center',
+		padding: theme.spacing(1),
+	},
+}));
+
 export interface ImageViewProps {
 	path: string;
 }
 
-const ImageViewStyle: React.CSSProperties = {
-	display: 'block',
-	overflow: 'hidden',
-	objectFit: 'contain',
-};
-
 export function ImageView({ path: filePath }: ImageViewProps): JSX.Element {
+	const styles = useStyles();
+
 	const url = fileUrl(filePath);
 	const basename = path.basename(filePath);
 	return (
-		<div
-			style={{
-				display: 'flex',
-				flexDirection: 'column',
-				maxHeight: '100%',
-			}}
-		>
-			{isImage(filePath) && <img style={ImageViewStyle} src={url} />}
+		<div className={styles.imageView}>
+			{isImage(filePath) && <img className={styles.image} src={url} />}
 			{isVideo(filePath) && (
-				<video style={ImageViewStyle} controls>
+				<video className={styles.image} controls>
 					<source src={url} />
 				</video>
 			)}{' '}
-			<div
-				style={{
-					textAlign: 'center',
-					padding: '0.5em',
-				}}
-			>
-				{basename}
-			</div>
+			<Typography className={styles.imageCaption}>{basename}</Typography>
 		</div>
 	);
 }
