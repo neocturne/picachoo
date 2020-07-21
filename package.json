@@ -70,6 +70,7 @@
 	"dependencies": {
 		"@material-ui/core": "^4.11.0",
 		"@material-ui/styles": "^4.10.0",
+		"electron-disable-file-drop": "^1.0.2",
 		"file-url": "^3.0.0",
 		"minimist": "^1.2.5",
 		"react": "^16.13.1",

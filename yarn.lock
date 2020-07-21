@@ -2065,6 +2065,11 @@ electron-devtools-installer@^3.1.1:
     semver "^7.2.1"
     unzip-crx-3 "^0.2.0"
 
+electron-disable-file-drop@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/electron-disable-file-drop/-/electron-disable-file-drop-1.0.2.tgz#2fd6f1e1c0a0158be1115c92cb41d211b0a0c5a2"
+  integrity sha512-prbatFWnZW+l3yZBwEGMzsXkRCieATA+FL7NlEGB112I7eL6vrsZwh2CWbpGFqlrrPPWzHjKu+khQIZ0YhcmeQ==
+
 electron-notarize@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/electron-notarize/-/electron-notarize-1.0.0.tgz#bc925b1ccc3f79e58e029e8c4706572b01a9fd8f"

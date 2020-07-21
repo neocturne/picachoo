@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, ipcMain, BrowserWindow, Menu } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -57,6 +57,7 @@ async function installReactDevTools(): Promise<void> {
 function createWindow(): void {
 	const window = new BrowserWindow({
 		title: 'PiCaChoo',
+		show: false,
 		webPreferences: {
 			nodeIntegration: true,
 			contextIsolation: false,
@@ -65,15 +66,19 @@ function createWindow(): void {
 		},
 	});
 
-	window.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+	window.webContents.on('devtools-opened', () => {
+		window.webContents.focus();
+	});
 
 	if (isDevelopment) {
 		window.webContents.openDevTools();
 	}
 
-	window.webContents.on('devtools-opened', () => {
-		window.webContents.focus();
+	ipcMain.once('ready-to-show', () => {
+		window.show();
 	});
+
+	window.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 }
 
 // quit application when all windows are closed
@@ -96,6 +101,8 @@ app.on('activate', () => {
 async function initialize(): Promise<void> {
 	if (isDevelopment) {
 		await installReactDevTools();
+	} else {
+		Menu.setApplicationMenu(null);
 	}
 
 	createWindow();
