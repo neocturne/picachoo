@@ -12,7 +12,7 @@ import 'typeface-roboto';
 
 const theme = createMuiTheme({
 	palette: {
-		type: 'dark',
+		mode: 'dark',
 	},
 });
 
