@@ -1,4 +1,4 @@
-import { app, ipcMain, BrowserWindow, Menu } from 'electron';
+import { app, ipcMain, protocol, BrowserWindow, Menu } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -48,6 +48,12 @@ global.sourcePath = argPath ?? path.resolve();
 
 app.allowRendererProcessReuse = true;
 
+app.whenReady().then(() => {
+	protocol.registerFileProtocol('file', (request, callback) => {
+		callback(decodeURIComponent(new URL(request.url).pathname));
+	});
+});
+
 async function installReactDevTools(): Promise<void> {
 	const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import('electron-devtools-installer');
 	const name = await installExtension(REACT_DEVELOPER_TOOLS);
@@ -62,6 +68,7 @@ function createWindow(): void {
 			nodeIntegration: true,
 			contextIsolation: false,
 			allowRunningInsecureContent: false,
+			enableRemoteModule: true,
 			webSecurity: !isDevelopment,
 		},
 	});
